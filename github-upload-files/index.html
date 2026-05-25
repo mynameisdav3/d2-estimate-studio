@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>D2 Estimate Studio</title>
+    <meta name="theme-color" content="#0d4a91">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Estimates">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">D2 Carpentry and Design</p>
+          <h1>Estimate Studio</h1>
+        </div>
+        <div class="top-actions">
+          <button class="icon-button" id="newEstimate" title="New estimate" aria-label="New estimate">+ New</button>
+          <button class="icon-button" id="saveEstimate" title="Save estimate" aria-label="Save estimate">Save</button>
+          <button class="icon-button" id="submitEstimate" title="Submit estimate" aria-label="Submit estimate">Submit</button>
+          <button class="icon-button" id="printEstimate" title="Print estimate" aria-label="Print estimate">PDF</button>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <form class="editor" id="estimateForm">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Estimate Details</h2>
+            </div>
+            <div class="field-grid">
+              <label>
+                Company
+                <input id="companyName" value="D2 Carpentry & Design" autocomplete="organization">
+              </label>
+              <label>
+                Estimate Title
+                <input id="estimateTitle" value="Estimate">
+              </label>
+              <label>
+                Office Phone
+                <input id="companyPhone" value="239-469-8555" autocomplete="tel">
+              </label>
+              <label>
+                Email
+                <input id="companyEmail" value="D2carpentryanddesign@gmail.com" autocomplete="email">
+              </label>
+              <label>
+                Company Address
+                <input id="companyAddress" value="2710 Del Prado Blvd S #2-184 Cape Coral, FL 33904" autocomplete="street-address">
+              </label>
+              <label class="estimate-number-field">
+                <span class="estimate-number-label-row">
+                  <span>Estimate No.</span>
+                  <span class="estimate-number-toggle">
+                    <input id="showEstimateNumber" type="checkbox" checked>
+                    Show
+                  </span>
+                </span>
+                <input id="estimateNumber" placeholder="A-260525-001">
+              </label>
+              <label>
+                Date
+                <input id="estimateDate" type="date">
+              </label>
+              <label>
+                Valid Until
+                <input id="validUntil" type="date">
+              </label>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Client Information</h2>
+            </div>
+            <div class="field-grid">
+              <label>
+                Client Name
+                <input id="clientName" placeholder="Jane Smith">
+              </label>
+              <label>
+                Phone
+                <input id="clientPhone" placeholder="(555) 555-0123">
+              </label>
+              <label>
+                Email
+                <input id="clientEmail" type="email" placeholder="client@email.com">
+              </label>
+              <label class="wide">
+                Address
+                <input id="projectAddress" placeholder="123 Main Street, City, ST">
+              </label>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Project</h2>
+            </div>
+            <div class="field-grid">
+              <label>
+                Project Type
+                <select id="projectType">
+                  <option>Reach-in closet</option>
+                  <option>Walk-in closet</option>
+                  <option>Pantry storage</option>
+                  <option>Garage storage</option>
+                  <option>Built-in cabinetry</option>
+                  <option>Custom carpentry</option>
+                  <option>Other</option>
+                </select>
+              </label>
+              <label data-project-pricing>
+                Finish
+                <select id="finishLevel">
+                  <option value=""></option>
+                  <option value="1">Standard melamine</option>
+                  <option value="1.18">Painted finish</option>
+                  <option value="1.32">Premium wood veneer</option>
+                </select>
+              </label>
+              <label data-project-pricing>
+                Width
+                <div class="unit-input">
+                  <input id="widthFeet" type="number" min="0" step="0.5" value="8">
+                  <span>ft</span>
+                </div>
+              </label>
+              <label data-project-pricing>
+                Height
+                <div class="unit-input">
+                  <input id="heightFeet" type="number" min="0" step="0.5" value="8">
+                  <span>ft</span>
+                </div>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel line-items-panel">
+            <div class="panel-header">
+              <h2>Line Items</h2>
+              <button type="button" id="addLineItem">Add Item</button>
+            </div>
+            <div class="line-items" id="lineItems"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Project Photos</h2>
+            </div>
+            <div class="photo-dropzone" id="photoDropzone">
+              <input id="photoUpload" type="file" accept="image/*" multiple>
+              <strong>Drop photos here</strong>
+              <span>or click to choose images</span>
+            </div>
+            <div class="photo-editor-list" id="photoEditorList"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Adjustments</h2>
+            </div>
+            <div class="field-grid three">
+              <label>
+                Total
+                <div class="unit-input">
+                  <input id="flatTotal" type="number" min="0" step="0.01">
+                  <span>$</span>
+                </div>
+              </label>
+              <label>
+                Discount
+                <div class="unit-input">
+                  <input id="discount" type="number" min="0" step="0.01">
+                  <select id="discountType" aria-label="Discount type">
+                    <option value="dollar">$</option>
+                    <option value="percent">%</option>
+                  </select>
+                </div>
+              </label>
+              <label>
+                Tax
+                <div class="unit-input">
+                  <input id="taxRate" type="number" min="0" step="0.01" value="6.5">
+                  <span>%</span>
+                </div>
+              </label>
+              <label>
+                Deposit
+                <div class="unit-input">
+                  <input id="depositRate" type="number" min="0" max="100" step="1">
+                  <span>%</span>
+                </div>
+              </label>
+              <label class="wide">
+                Notes
+                <textarea id="notes" rows="4"></textarea>
+              </label>
+            </div>
+            <p class="submit-status" id="submitStatus" role="status"></p>
+          </section>
+        </form>
+
+        <aside class="preview" aria-live="polite">
+          <div class="estimate-sheet" id="estimateSheet">
+            <div class="simple-sheet-header">
+              <div class="logo-card">
+                <img src="assets/d2-logo.png" alt="D2 Carpentry and Design logo">
+              </div>
+              <div class="simple-title">
+                <div class="brand-title-lockup">
+                  <h2 id="previewCompany">D2 Carpentry & Design</h2>
+                  <p>-Crafting Your Vision One Nail At A Time-</p>
+                </div>
+              </div>
+              <div class="header-estimate-info">
+                <span class="header-estimate-number" id="previewEstimateNumber"></span>
+                <div class="estimate-title-line">
+                  <h3 id="previewEstimateTitle">Estimate</h3>
+                </div>
+                <dl>
+                  <div><dd id="previewDate"></dd></div>
+                  <div><dd id="previewCompanyPhone"></dd></div>
+                  <div><dd id="previewCompanyAddress"></dd></div>
+                  <div><dd id="previewCompanyEmail"></dd></div>
+                </dl>
+              </div>
+            </div>
+
+            <div class="client-block">
+              <div>
+                <span>Client Information</span>
+                <strong id="previewClient">Client name</strong>
+                <p id="previewPhone"></p>
+                <p id="previewClientEmail"></p>
+                <p id="previewAddress"></p>
+              </div>
+            </div>
+
+            <table>
+              <colgroup>
+                <col class="description-column">
+                <col class="qty-column">
+                <col class="total-column">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Qty</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody id="previewRows"></tbody>
+            </table>
+
+            <div class="totals">
+              <div id="subtotalRow"><span>Subtotal</span><strong id="subtotal">$0.00</strong></div>
+              <div id="discountRow"><span>Discount</span><strong id="discountTotal">$0.00</strong></div>
+              <div id="taxRow"><span>Tax</span><strong id="taxTotal">$0.00</strong></div>
+              <div class="grand-total"><span>Total</span><strong id="grandTotal">$0.00</strong></div>
+              <div id="depositRow"><span id="depositLabel">Deposit Due</span><strong id="depositDue">$0.00</strong></div>
+            </div>
+
+            <div class="notes">
+              <span>Notes</span>
+              <p id="previewNotes"></p>
+            </div>
+
+            <div class="project-images" id="previewPhotosSection">
+              <span>Project Images</span>
+              <div class="project-image-grid" id="previewPhotos"></div>
+            </div>
+
+            <footer class="estimate-footer">
+              <span><strong>Office:</strong> <span id="previewFooterPhone">(239) 469-8555</span></span>
+              <span><strong>Email:</strong> <span id="previewFooterEmail">D2carpentryanddesign@gmail.com</span></span>
+              <span><strong>Address:</strong> <span id="previewFooterAddress"></span></span>
+            </footer>
+          </div>
+        </aside>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
