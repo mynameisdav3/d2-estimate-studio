@@ -891,16 +891,16 @@ th {
 @media print {
   @page {
     size: letter portrait;
-    margin: 0.55in;
+    margin: 0.45in;
   }
 
   html,
   body {
-    width: auto;
+    width: 100%;
     min-width: 0;
     margin: 0;
     background: #ffffff;
-    overflow: visible;
+    overflow: hidden;
   }
 
   .estimate-sheet,
@@ -917,17 +917,22 @@ th {
     padding: 0;
     width: 100%;
     max-width: none;
+    overflow: hidden;
   }
 
   .workspace {
     display: block;
     width: 100%;
+    overflow: hidden;
   }
 
   .preview {
     position: static;
     width: 100%;
     max-width: none;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
   }
 
   .estimate-sheet {
@@ -935,44 +940,45 @@ th {
     box-shadow: none;
     min-height: auto;
     padding: 0;
-    width: 6.75in;
-    max-width: 6.75in;
+    width: 6.35in !important;
+    min-width: 0 !important;
+    max-width: 6.35in !important;
     margin: 0 auto;
-    overflow: visible;
+    overflow: hidden;
     box-sizing: border-box;
   }
 
   .simple-sheet-header {
-    grid-template-columns: 0.82in minmax(0, 1fr) 1.82in;
-    gap: 0.1in;
+    grid-template-columns: 0.74in minmax(0, 1fr) 1.68in;
+    gap: 0.08in;
     border-bottom-color: #0d4a91 !important;
   }
 
   .logo-card {
-    width: 0.82in;
-    height: 0.66in;
+    width: 0.74in;
+    height: 0.6in;
   }
 
   .simple-title h2 {
-    font-size: 1.16rem;
+    font-size: 1.02rem;
     line-height: 1.05;
     white-space: normal;
   }
 
   .simple-title p:last-child {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
   }
 
   .header-estimate-info {
-    width: 1.82in;
+    width: 1.68in;
   }
 
   .header-estimate-info h3 {
-    font-size: 1.18rem;
+    font-size: 1.04rem;
   }
 
   .header-estimate-info dd {
-    font-size: 0.58rem;
+    font-size: 0.52rem;
     white-space: normal;
     overflow-wrap: anywhere;
   }
@@ -990,26 +996,32 @@ th {
 
   table {
     width: 100% !important;
+    max-width: 100% !important;
     table-layout: fixed;
-    font-size: 0.76rem;
+    font-size: 0.7rem;
   }
 
   .qty-column {
-    width: 0.42in;
+    width: 0.36in;
   }
 
   .total-column {
-    width: 0.78in;
+    width: 0.7in;
   }
 
   .estimate-sheet th,
   .estimate-sheet td {
-    padding: 7px 5px;
+    padding: 6px 4px;
+  }
+
+  .estimate-sheet th:first-child,
+  .estimate-sheet td:first-child {
+    min-width: 0;
   }
 
   .totals {
-    width: 2.05in;
-    font-size: 0.78rem;
+    width: 1.85in;
+    font-size: 0.72rem;
   }
 
   .project-image-grid {
