@@ -496,67 +496,21 @@ function serializeEstimate() {
   return data;
 }
 
-function getEstimateFileName(extension = "json") {
-  const estimateNumber = $("estimateNumber").value.trim() || "estimate";
-  const clientName = $("clientName").value.trim() || "draft";
-  const safeName = `${estimateNumber}-${clientName}`
-    .replace(/[^a-z0-9-]+/gi, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase();
-  return `${safeName || "estimate-draft"}.${extension}`;
-}
-
-async function saveDraftFile(data) {
-  const fileName = getEstimateFileName("json");
-  const contents = JSON.stringify(data, null, 2);
-
-  if (window.showSaveFilePicker) {
-    const handle = await window.showSaveFilePicker({
-      suggestedName: fileName,
-      types: [{
-        description: "D2 Estimate Draft",
-        accept: { "application/json": [".json"] },
-      }],
-    });
-    const writable = await handle.createWritable();
-    await writable.write(contents);
-    await writable.close();
-    return;
-  }
-
-  const blob = new Blob([contents], { type: "application/json" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(link.href);
-}
-
-async function saveEstimate(options = {}) {
+function saveEstimate(options = {}) {
   ensureEstimateNumber();
   const estimate = serializeEstimate();
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(estimate));
   } catch (error) {
-    // Some direct file previews block storage; the downloadable draft still works.
+    // Some direct file previews block storage; PDF saving still works.
   }
 
-  try {
-    await saveDraftFile(estimate);
-    if (!options.silent) {
-      $("saveEstimate").textContent = "Saved";
-      setTimeout(() => {
-        $("saveEstimate").textContent = "Save";
-      }, 1000);
-    }
-  } catch (error) {
-    if (error.name !== "AbortError") {
-      window.alert("The browser could not save the draft file. The draft is still saved in this browser.");
-    }
-    throw error;
+  if (!options.silent) {
+    $("saveEstimate").textContent = "PDF";
+    setTimeout(() => {
+      $("saveEstimate").textContent = "Save";
+    }, 1000);
+    window.print();
   }
 }
 
@@ -601,14 +555,14 @@ async function startNewEstimate() {
     return;
   }
 
-  const saveFirst = window.confirm("Save this estimate as a draft file before opening a fresh estimate?");
+  const saveFirst = window.confirm("Save this estimate as a PDF before opening a fresh estimate?");
   if (!saveFirst) return;
 
-  try {
-    await saveEstimate({ silent: true });
+  saveEstimate({ silent: true });
+  window.print();
+  const openAfterSave = window.confirm("After saving/printing the PDF, open a fresh estimate in a new window?");
+  if (openAfterSave) {
     openFreshEstimateWindow();
-  } catch (error) {
-    // Save was cancelled or failed; keep the current estimate untouched.
   }
 }
 
@@ -620,7 +574,7 @@ async function submitEstimateToGoogle() {
     return;
   }
 
-  await saveEstimate({ silent: true });
+  saveEstimate({ silent: true });
   status.textContent = "Submitting estimate...";
 
   const iframeName = "googleSubmitFrame";
