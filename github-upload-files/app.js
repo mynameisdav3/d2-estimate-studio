@@ -10,7 +10,7 @@ const ESTIMATE_SEQUENCE_KEY = "d2EstimateSequence";
 const COMPANY_DEFAULTS = {
   name: "D2 Carpentry & Design",
   phone: "239-469-8555",
-  email: "D2carpentryanddesign@gmail.com",
+  email: "D2CarpentryandDesign@gmail.com",
   address: "2710 Del Prado Blvd S #2-184 Cape Coral, FL 33904",
 };
 
@@ -23,6 +23,11 @@ const PROJECT_PREFIXES = {
   "Built-in cabinetry": "B",
   "Custom carpentry": "C",
 };
+
+const OLD_LINE_EXAMPLES = new Set([
+  "Custom shelf tower",
+  "Customer shelf tower",
+]);
 
 const presets = {
   shelves: { name: "Adjustable shelves", qty: 8, price: 42 },
@@ -41,7 +46,6 @@ const fields = [
   "estimateNumber",
   "showEstimateNumber",
   "estimateDate",
-  "validUntil",
   "clientName",
   "clientPhone",
   "clientEmail",
@@ -60,6 +64,7 @@ const fields = [
 
 const state = {
   lineItems: [],
+  materialItems: [],
   photos: [],
   autoEstimateNumber: false,
   estimateNumberCommitted: false,
@@ -122,17 +127,41 @@ function formatPhoneInput(input) {
   input.value = formatPhone(input.value);
 }
 
+function phoneHref(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  return digits.length === 10 ? `tel:+1${digits}` : "";
+}
+
+function emailHref(value) {
+  const email = value.trim();
+  return email ? `mailto:${email}` : "";
+}
+
 function getFinishLabel() {
   const select = $("finishLevel");
   return select.options[select.selectedIndex].text;
 }
 
 function formatCompanyAddress(value) {
-  const address = value.trim();
+  const address = normalizeCompanyAddress(value);
   if (!address) return "";
-  const cityMatch = address.match(/\s(Cape Coral,\s*FL\s*\d{5})$/i);
+  const cityMatch = address.match(/\s(Cape Coral,\s*(?:FL|Florida)\s*\d{5})$/i);
   if (cityMatch) {
     return `${address.slice(0, cityMatch.index).trim()}<br>${cityMatch[1].trim()}`;
+  }
+  return address;
+}
+
+function normalizeCompanyAddress(value) {
+  const address = String(value || "").trim();
+  if (!address) return "";
+  const compact = address.replace(/\s+/g, " ").toLowerCase();
+  if (
+    compact.includes("2710 del prado") &&
+    compact.includes("cape coral") &&
+    compact.includes("33904")
+  ) {
+    return COMPANY_DEFAULTS.address;
   }
   return address;
 }
@@ -195,12 +224,188 @@ function addLineItem(item = { name: "", qty: "", price: "" }) {
   state.lineItems.push({
     id: createId(),
     type: "item",
-    name: item.name,
+    name: cleanLineItemName(item.name),
     qty: item.qty,
     price: item.price,
   });
   renderLineItems();
   updatePreview();
+}
+
+function cleanLineItemName(name) {
+  const value = String(name || "").trim();
+  return OLD_LINE_EXAMPLES.has(value) ? "" : name || "";
+}
+
+function materialSearchTerms(value) {
+  const normalized = String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  if (!normalized) return [];
+  const terms = new Set([normalized]);
+  normalized.split(" ").filter(Boolean).forEach((token) => {
+    terms.add(token);
+    if (token.endsWith("s") && token.length > 3) terms.add(token.slice(0, -1));
+  });
+  if (normalized.includes("paintbrush")) {
+    terms.add("paint brush");
+    terms.add("brush");
+  }
+  return Array.from(terms).filter((term) => term.length > 1);
+}
+
+function materialMatches(value) {
+  const materials = Array.isArray(window.D2_MATERIALS_DATABASE) ? window.D2_MATERIALS_DATABASE : [];
+  const terms = materialSearchTerms(value);
+  if (terms.length === 0) return [];
+  return materials
+    .filter((material) => {
+      const haystack = [
+        material.product,
+        material.category,
+        material.id,
+        material.unit,
+      ].join(" ").toLowerCase().replace(/[^a-z0-9]+/g, " ");
+      return terms.some((term) => haystack.includes(term));
+    })
+    .slice(0, 8);
+}
+
+function renderMaterialSuggestions(row, value) {
+  const panel = row.querySelector(".material-suggestions");
+  if (!panel) return;
+  const matches = materialMatches(value);
+  panel.hidden = matches.length === 0;
+  panel.innerHTML = matches.map((material) => `
+    <button type="button" class="material-suggestion" data-material-id="${escapeHtml(material.id)}">
+      <span>${escapeHtml(material.product)}</span>
+      <strong>${currency.format(material.defaultPrice)}</strong>
+    </button>
+  `).join("");
+}
+
+function applyMaterialSuggestion(row, materialItem, materialId) {
+  const material = (window.D2_MATERIALS_DATABASE || []).find((entry) => entry.id === materialId);
+  if (!material) return;
+  materialItem.name = material.product;
+  materialItem.price = material.defaultPrice;
+  materialItem.unit = material.unit;
+  if (!(Number.parseFloat(materialItem.qty) > 0)) materialItem.qty = 1;
+  const nameInput = row.querySelector('[data-field="name"]');
+  const qtyInput = row.querySelector('[data-field="qty"]');
+  const priceInput = row.querySelector('[data-field="price"]');
+  const panel = row.querySelector(".material-suggestions");
+  if (nameInput) {
+    nameInput.value = material.product;
+    autoGrowTextArea(nameInput);
+  }
+  if (qtyInput) qtyInput.value = materialItem.qty;
+  if (priceInput) priceInput.value = material.defaultPrice;
+  if (panel) panel.hidden = true;
+  updatePreview();
+}
+
+function addMaterialItem(item = { name: "", qty: "", price: "", unit: "" }) {
+  state.materialItems.push({
+    id: createId(),
+    name: item.name || "",
+    qty: item.qty || "",
+    price: item.price || "",
+    unit: item.unit || "",
+  });
+  renderMaterialItems();
+  updatePreview();
+}
+
+function removeMaterialItem(id) {
+  state.materialItems = state.materialItems.filter((item) => item.id !== id);
+  if (state.materialItems.length === 0) {
+    state.materialItems = [{ id: createId(), name: "", qty: "", price: "", unit: "" }];
+  }
+  renderMaterialItems();
+  updatePreview();
+}
+
+function calculateMaterialCost() {
+  return state.materialItems.reduce((sum, item) => {
+    return sum + (Number.parseFloat(item.qty) || 0) * (Number.parseFloat(item.price) || 0);
+  }, 0);
+}
+
+function isCompleteEntry(item) {
+  return Boolean(String(item.name || "").trim()) &&
+    Number.parseFloat(item.qty) > 0 &&
+    Number.parseFloat(item.price) > 0;
+}
+
+function maybeAddBlankMaterialRow(item) {
+  const lastItem = state.materialItems[state.materialItems.length - 1];
+  if (!lastItem || lastItem.id !== item.id || !isCompleteEntry(item)) return false;
+  state.materialItems.push({ id: createId(), name: "", qty: "", price: "", unit: "" });
+  renderMaterialItems();
+  updatePreview();
+  return true;
+}
+
+function maybeAddBlankLineItemRow(item) {
+  const visibleItems = state.lineItems.filter((entry) => entry.type !== "subline");
+  const lastItem = visibleItems[visibleItems.length - 1];
+  if (!lastItem || lastItem.id !== item.id || !isCompleteEntry(item)) return false;
+  state.lineItems.push({ id: createId(), type: "item", name: "", qty: "", price: "" });
+  renderLineItems();
+  updatePreview();
+  return true;
+}
+
+function renderMaterialItems() {
+  const container = $("materialItems");
+  container.innerHTML = "";
+
+  state.materialItems.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "material-row";
+    row.dataset.id = item.id;
+    row.innerHTML = `
+      <label>
+        Material / Supply
+        <textarea data-field="name" rows="1">${escapeHtml(item.name)}</textarea>
+        <div class="material-suggestions" hidden></div>
+      </label>
+      <label>
+        Qty
+        <input data-field="qty" type="number" min="0" step="0.01" value="${item.qty}">
+      </label>
+      <label>
+        Unit Cost
+        <input data-field="price" type="number" min="0" step="0.01" value="${item.price}">
+      </label>
+      <button type="button" data-action="remove" title="Remove material" aria-label="Remove material">x</button>
+    `;
+
+    row.addEventListener("input", (event) => {
+      const target = event.target;
+      const field = target.dataset.field;
+      if (!field) return;
+      const materialItem = state.materialItems.find((entry) => entry.id === item.id);
+      materialItem[field] = field === "name" ? target.value : Number.parseFloat(target.value) || 0;
+      if (field === "name") renderMaterialSuggestions(row, target.value);
+      if (target.tagName === "TEXTAREA") autoGrowTextArea(target);
+      if (maybeAddBlankMaterialRow(materialItem)) return;
+      updatePreview();
+    });
+
+    row.addEventListener("click", (event) => {
+      const materialButton = event.target.closest("[data-material-id]");
+      if (materialButton) {
+        const materialItem = state.materialItems.find((entry) => entry.id === item.id);
+        applyMaterialSuggestion(row, materialItem, materialButton.dataset.materialId);
+        maybeAddBlankMaterialRow(materialItem);
+        return;
+      }
+      if (event.target.dataset.action === "remove") removeMaterialItem(item.id);
+    });
+
+    container.appendChild(row);
+    row.querySelectorAll("textarea").forEach(autoGrowTextArea);
+  });
 }
 
 function addSubLine(parentId) {
@@ -221,6 +426,29 @@ function addSubLine(parentId) {
 
   state.lineItems.splice(insertAt, 0, subline);
   renderLineItems();
+  updatePreview();
+}
+
+function addSubLineAfter(sublineId) {
+  const currentIndex = state.lineItems.findIndex((item) => item.id === sublineId);
+  if (currentIndex === -1) return;
+  const current = state.lineItems[currentIndex];
+  if (current.type !== "subline" || !current.parentId) return;
+  const subline = {
+    id: createId(),
+    parentId: current.parentId,
+    type: "subline",
+    name: "",
+    qty: 0,
+    price: 0,
+  };
+  state.lineItems.splice(currentIndex + 1, 0, subline);
+  renderLineItems();
+  requestAnimationFrame(() => {
+    const row = document.querySelector(`[data-id="${subline.id}"]`);
+    const textarea = row ? row.querySelector('[data-field="name"]') : null;
+    if (textarea) textarea.focus();
+  });
   updatePreview();
 }
 
@@ -343,6 +571,34 @@ function renderLineItems() {
       updatePreview();
     });
 
+    row.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      const target = event.target;
+      if (item.type === "subline" && target.dataset.field === "name") {
+        event.preventDefault();
+        addSubLineAfter(item.id);
+        return;
+      }
+      if (item.type !== "subline" && target.dataset.field === "name") {
+        const lineItem = state.lineItems.find((entry) => entry.id === item.id);
+        if (!String(lineItem.name || "").trim()) return;
+        event.preventDefault();
+        addLineItem();
+        requestAnimationFrame(() => {
+          const rows = document.querySelectorAll("#lineItems .line-row:not(.subline-editor-row)");
+          const nextRow = rows[rows.length - 1];
+          const textarea = nextRow ? nextRow.querySelector('[data-field="name"]') : null;
+          if (textarea) textarea.focus();
+        });
+        return;
+      }
+      if (target.dataset.field !== "price" || item.type === "subline") return;
+      const lineItem = state.lineItems.find((entry) => entry.id === item.id);
+      if (!isCompleteEntry(lineItem)) return;
+      event.preventDefault();
+      maybeAddBlankLineItemRow(lineItem);
+    });
+
     row.addEventListener("click", (event) => {
       const action = event.target.dataset.action;
       if (action === "remove") removeLineItem(item.id);
@@ -403,7 +659,41 @@ function calculateTotals() {
 
 function updatePreview() {
   const totals = calculateTotals();
-  if ($("showEstimateNumber").checked && !$("estimateNumber").value.trim()) {
+  const materialCost = calculateMaterialCost();
+  $("materialCostTotal").textContent = currency.format(materialCost);
+  $("internalMaterialCost").textContent = currency.format(materialCost);
+  $("internalEstimateTotal").textContent = currency.format(totals.total);
+  $("internalGrossProfit").textContent = currency.format(totals.total - materialCost);
+  const internalMaterials = state.materialItems.filter((item) => {
+    return String(item.name || "").trim() || Number.parseFloat(item.qty) > 0 || Number.parseFloat(item.price) > 0;
+  });
+  $("internalMaterialList").innerHTML = internalMaterials.length
+    ? `
+      <table>
+        <thead>
+          <tr>
+            <th>Supply</th>
+            <th>Qty</th>
+            <th>Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${internalMaterials.map((item) => {
+            const qty = Number.parseFloat(item.qty) || 0;
+            const price = Number.parseFloat(item.price) || 0;
+            return `
+              <tr>
+                <td>${escapeHtml(item.name)}</td>
+                <td>${qty || ""}</td>
+                <td>${price ? currency.format(qty * price) : ""}</td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    `
+    : "";
+  if ($("showEstimateNumber").checked && (!$("estimateNumber").value.trim() || !state.autoEstimateNumber && !$("estimateNumber").value.trim())) {
     $("estimateNumber").value = makeEstimateNumber(false);
     state.autoEstimateNumber = true;
   }
@@ -413,8 +703,13 @@ function updatePreview() {
   $("previewEstimateTitle").textContent = $("estimateTitle").value || "Estimate";
   $("previewEstimateNumber").textContent = estimateNumber;
   $("previewEstimateNumber").hidden = !$("showEstimateNumber").checked || !estimateNumber;
-  $("previewCompanyPhone").textContent = formatPhone($("companyPhone").value || COMPANY_DEFAULTS.phone);
-  $("previewCompanyEmail").textContent = $("companyEmail").value || COMPANY_DEFAULTS.email;
+  const companyPhone = $("companyPhone").value || COMPANY_DEFAULTS.phone;
+  const companyEmail = $("companyEmail").value || COMPANY_DEFAULTS.email;
+  $("previewCompanyPhone").textContent = formatPhone(companyPhone);
+  $("previewCompanyPhone").href = phoneHref(companyPhone);
+  $("previewCompanyEmail").textContent = companyEmail;
+  $("previewCompanyEmail").href = emailHref(companyEmail);
+  $("companyAddress").value = normalizeCompanyAddress($("companyAddress").value || COMPANY_DEFAULTS.address);
   $("previewCompanyAddress").innerHTML = formatCompanyAddress($("companyAddress").value);
   $("previewFooterPhone").textContent = formatPhone($("companyPhone").value || COMPANY_DEFAULTS.phone);
   $("previewFooterEmail").textContent = $("companyEmail").value || COMPANY_DEFAULTS.email;
@@ -476,15 +771,28 @@ function updatePreview() {
   `).join("");
 }
 
+function setCopyMode(mode) {
+  const allowedModes = new Set(["customer", "internal", "supply", "team"]);
+  const copyMode = allowedModes.has(mode) ? mode : "customer";
+  const showsInternal = copyMode === "internal" || copyMode === "supply" || copyMode === "team";
+  document.body.dataset.copyMode = copyMode;
+  $("internalSummary").hidden = !showsInternal;
+  document.querySelectorAll(".copy-mode-button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.copyMode === copyMode);
+  });
+}
+
 function serializeEstimate() {
   const totals = calculateTotals();
   const data = {
     lineItems: state.lineItems,
+    materialItems: state.materialItems,
     photos: state.photos,
     totals,
     backend: {
-      estimatedMaterialCost: totals.total * MATERIAL_PERCENT,
-      estimatedGrossProfit: totals.total - totals.total * MATERIAL_PERCENT,
+      estimatedMaterialCost: calculateMaterialCost(),
+      fallbackMaterialCost: totals.total * MATERIAL_PERCENT,
+      estimatedGrossProfit: totals.total - calculateMaterialCost(),
       materialPercent: MATERIAL_PERCENT * 100,
     },
     submittedAt: new Date().toISOString(),
@@ -529,7 +837,10 @@ function hasWorkInProgress() {
   const hasLineContent = state.lineItems.some((item) => {
     return item.name.trim() || Number.parseFloat(item.qty) > 0 || Number.parseFloat(item.price) > 0;
   });
-  return hasFieldContent || hasLineContent || state.photos.length > 0;
+  const hasMaterialContent = state.materialItems.some((item) => {
+    return item.name.trim() || Number.parseFloat(item.qty) > 0 || Number.parseFloat(item.price) > 0;
+  });
+  return hasFieldContent || hasLineContent || hasMaterialContent || state.photos.length > 0;
 }
 
 function openFreshEstimateWindow() {
@@ -624,12 +935,28 @@ function loadEstimate() {
   fields.forEach((field) => {
     if (data[field] !== undefined) $(field).value = data[field];
   });
+  $("showEstimateNumber").checked = data.showEstimateNumber !== false;
   applyCompanyDefaults();
+  $("companyAddress").value = normalizeCompanyAddress($("companyAddress").value);
+  if ($("showEstimateNumber").checked && !$("estimateNumber").value.trim()) {
+    $("estimateNumber").value = makeEstimateNumber(false);
+    state.autoEstimateNumber = true;
+  }
   state.lineItems = Array.isArray(data.lineItems)
-    ? data.lineItems.map((item) => ({ type: "item", ...item }))
+    ? data.lineItems.map((item) => ({ type: "item", ...item, name: cleanLineItemName(item.name) }))
     : [];
+  state.materialItems = Array.isArray(data.materialItems)
+    ? data.materialItems.map((item) => ({ id: createId(), ...item }))
+    : [];
+  if (state.materialItems.length === 0) {
+    state.materialItems = [{ id: createId(), name: "", qty: "", price: "", unit: "" }];
+  }
+  if (state.lineItems.length === 0) {
+    state.lineItems = [{ id: createId(), type: "item", name: "", qty: "", price: "" }];
+  }
   state.photos = Array.isArray(data.photos) ? data.photos : [];
   renderLineItems();
+  renderMaterialItems();
   renderPhotos();
   syncProjectMode();
   updatePreview();
@@ -652,10 +979,12 @@ function syncProjectMode() {
 
 function clearManualEstimate() {
   state.lineItems = [{ id: createId(), type: "item", name: "", qty: "", price: "" }];
+  state.materialItems = [{ id: createId(), name: "", qty: "", price: "", unit: "" }];
   $("finishLevel").value = "";
   $("widthFeet").value = "";
   $("heightFeet").value = "";
   renderLineItems();
+  renderMaterialItems();
   updatePreview();
 }
 
@@ -666,7 +995,6 @@ function resetEstimate() {
   state.autoEstimateNumber = true;
   state.estimateNumberCommitted = false;
   $("estimateDate").value = today.toISOString().slice(0, 10);
-  $("validUntil").value = addDays(today, 15);
   $("companyName").value = COMPANY_DEFAULTS.name;
   $("estimateTitle").value = "Estimate";
   $("companyPhone").value = COMPANY_DEFAULTS.phone;
@@ -688,8 +1016,10 @@ function resetEstimate() {
   $("depositRate").value = "";
   $("notes").value = "";
   state.lineItems = [{ id: createId(), type: "item", name: "", qty: "", price: "" }];
+  state.materialItems = [{ id: createId(), name: "", qty: "", price: "", unit: "" }];
   state.photos = [];
   renderLineItems();
+  renderMaterialItems();
   renderPhotos();
   syncProjectMode();
   updatePreview();
@@ -714,6 +1044,7 @@ $("estimateNumber").addEventListener("input", () => {
 });
 
 $("addLineItem").addEventListener("click", () => addLineItem());
+$("addMaterialItem").addEventListener("click", () => addMaterialItem());
 $("photoUpload").addEventListener("change", (event) => {
   addPhotos(event.target.files);
   event.target.value = "";
@@ -742,6 +1073,19 @@ $("newEstimate").addEventListener("click", () => startNewEstimate().catch(() => 
 $("saveEstimate").addEventListener("click", () => saveEstimate().catch(() => {}));
 $("submitEstimate").addEventListener("click", () => submitEstimateToGoogle().catch(() => {}));
 $("printEstimate").addEventListener("click", () => window.print());
+document.querySelectorAll("[data-copy-mode]").forEach((button) => {
+  button.addEventListener("click", () => setCopyMode(button.dataset.copyMode));
+});
+document.querySelectorAll("[data-action-button]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const action = button.dataset.actionButton;
+    if (action === "new") startNewEstimate().catch(() => {});
+    if (action === "save") saveEstimate().catch(() => {});
+    if (action === "submit") submitEstimateToGoogle().catch(() => {});
+    if (action === "print") window.print();
+  });
+});
+setCopyMode("customer");
 
 if (new URLSearchParams(window.location.search).has("new")) {
   resetEstimate();

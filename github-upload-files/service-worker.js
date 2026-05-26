@@ -1,9 +1,10 @@
-const CACHE_NAME = "alchemyist-estimate-studio-v7";
+const CACHE_NAME = "alchemyist-estimate-studio-v32";
 const APP_FILES = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./materials-database.js",
   "./manifest.webmanifest",
   "./icon.svg",
   "./assets/d2-logo.png",

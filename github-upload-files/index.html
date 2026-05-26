@@ -19,6 +19,12 @@
           <h1>Estimate Studio</h1>
         </div>
         <div class="top-actions">
+          <div class="copy-mode-toggle" aria-label="Copy type">
+            <button type="button" class="copy-mode-button active" data-copy-mode="customer">Customer</button>
+            <button type="button" class="copy-mode-button" data-copy-mode="internal">Office</button>
+            <button type="button" class="copy-mode-button" data-copy-mode="team">Team</button>
+            <button type="button" class="copy-mode-button" data-copy-mode="supply">Supplies</button>
+          </div>
           <button class="icon-button" id="newEstimate" title="New estimate" aria-label="New estimate">+ New</button>
           <button class="icon-button" id="saveEstimate" title="Save estimate" aria-label="Save estimate">Save</button>
           <button class="icon-button" id="submitEstimate" title="Submit estimate" aria-label="Submit estimate">Submit</button>
@@ -47,7 +53,7 @@
               </label>
               <label>
                 Email
-                <input id="companyEmail" value="D2carpentryanddesign@gmail.com" autocomplete="email">
+                <input id="companyEmail" value="D2CarpentryandDesign@gmail.com" autocomplete="email">
               </label>
               <label>
                 Company Address
@@ -66,10 +72,6 @@
               <label>
                 Date
                 <input id="estimateDate" type="date">
-              </label>
-              <label>
-                Valid Until
-                <input id="validUntil" type="date">
               </label>
             </div>
           </section>
@@ -138,6 +140,18 @@
                   <span>ft</span>
                 </div>
               </label>
+            </div>
+          </section>
+
+          <section class="panel materials-panel">
+            <div class="panel-header">
+              <h2>Materials & Supplies</h2>
+              <button type="button" id="addMaterialItem">Add Material</button>
+            </div>
+            <div class="material-items" id="materialItems"></div>
+            <div class="material-summary">
+              <span>Estimated Material Cost</span>
+              <strong id="materialCostTotal">$0.00</strong>
             </div>
           </section>
 
@@ -224,10 +238,10 @@
                   <h3 id="previewEstimateTitle">Estimate</h3>
                 </div>
                 <dl>
-                  <div><dd id="previewDate"></dd></div>
-                  <div><dd id="previewCompanyPhone"></dd></div>
-                  <div><dd id="previewCompanyAddress"></dd></div>
-                  <div><dd id="previewCompanyEmail"></dd></div>
+                  <div><dt>Date</dt><dd id="previewDate"></dd></div>
+                  <div><dt>Office</dt><dd><a id="previewCompanyPhone" href="tel:+12394698555"></a></dd></div>
+                  <div><dt>Address</dt><dd id="previewCompanyAddress"></dd></div>
+                  <div><dt>Email</dt><dd><a id="previewCompanyEmail" href="mailto:D2CarpentryandDesign@gmail.com"></a></dd></div>
                 </dl>
               </div>
             </div>
@@ -276,15 +290,39 @@
               <div class="project-image-grid" id="previewPhotos"></div>
             </div>
 
+            <div class="internal-summary" id="internalSummary" hidden>
+              <span>Supply List</span>
+              <div class="internal-material-list" id="internalMaterialList"></div>
+              <div><strong>Material Cost</strong><b id="internalMaterialCost">$0.00</b></div>
+              <div><strong>Estimate Total</strong><b id="internalEstimateTotal">$0.00</b></div>
+              <div><strong>Projected Gross</strong><b id="internalGrossProfit">$0.00</b></div>
+            </div>
+
             <footer class="estimate-footer">
-              <span><strong>Office:</strong> <span id="previewFooterPhone">(239) 469-8555</span></span>
-              <span><strong>Email:</strong> <span id="previewFooterEmail">D2carpentryanddesign@gmail.com</span></span>
-              <span><strong>Address:</strong> <span id="previewFooterAddress"></span></span>
+              <span class="footer-contact"><strong>Office:</strong> <span id="previewFooterPhone">(239) 469-8555</span></span>
+              <span class="footer-contact"><strong>Email:</strong> <span id="previewFooterEmail">D2CarpentryandDesign@gmail.com</span></span>
+              <span class="footer-contact footer-address"><strong>Address:</strong> <span id="previewFooterAddress"></span></span>
             </footer>
           </div>
         </aside>
       </section>
+
+      <footer class="bottom-actions">
+        <div class="top-actions">
+          <div class="copy-mode-toggle" aria-label="Copy type">
+            <button type="button" class="copy-mode-button active" data-copy-mode="customer">Customer</button>
+            <button type="button" class="copy-mode-button" data-copy-mode="internal">Office</button>
+            <button type="button" class="copy-mode-button" data-copy-mode="team">Team</button>
+            <button type="button" class="copy-mode-button" data-copy-mode="supply">Supplies</button>
+          </div>
+          <button class="icon-button" data-action-button="new" title="New estimate" aria-label="New estimate">+ New</button>
+          <button class="icon-button" data-action-button="save" title="Save estimate" aria-label="Save estimate">Save</button>
+          <button class="icon-button" data-action-button="submit" title="Submit estimate" aria-label="Submit estimate">Submit</button>
+          <button class="icon-button" data-action-button="print" title="Print estimate" aria-label="Print estimate">PDF</button>
+        </div>
+      </footer>
     </main>
+    <script src="materials-database.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
