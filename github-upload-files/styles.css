@@ -949,28 +949,28 @@ th {
   }
 
   .simple-sheet-header {
-    grid-template-columns: 0.74in minmax(0, 1fr) 1.68in;
-    gap: 0.08in;
+    grid-template-columns: 0.92in minmax(0, 1fr) 1.58in;
+    gap: 0.11in;
     border-bottom-color: #0d4a91 !important;
   }
 
   .logo-card {
-    width: 0.74in;
-    height: 0.6in;
+    width: 0.92in;
+    height: 0.72in;
   }
 
   .simple-title h2 {
-    font-size: 1.02rem;
+    font-size: 1.16rem;
     line-height: 1.05;
     white-space: normal;
   }
 
   .simple-title p:last-child {
-    font-size: 0.5rem;
+    font-size: 0.56rem;
   }
 
   .header-estimate-info {
-    width: 1.68in;
+    width: 1.58in;
   }
 
   .header-estimate-info h3 {
@@ -1029,14 +1029,19 @@ th {
   }
 
   .estimate-footer {
-    grid-template-columns: 1fr;
-    gap: 4px;
-    font-size: 0.64rem;
+    grid-template-columns: 1.35in minmax(0, 1fr) 1.72in;
+    gap: 0.1in;
+    font-size: 0.54rem;
+    line-height: 1.22;
   }
 
   .estimate-footer > span:nth-child(2),
   .estimate-footer > span:nth-child(3) {
-    text-align: left;
+    text-align: center;
+  }
+
+  .estimate-footer > span:nth-child(3) {
+    text-align: right;
   }
 
   .grand-total {
